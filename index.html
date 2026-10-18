@@ -212,6 +212,7 @@ footer .socials{justify-content:center;margin:0 0 1.5rem}
 <div class="f"><input id="email" type="email" placeholder=" " autocomplete="email" required><label for="email">Email address</label></div>
 <div class="f"><select id="kind"><option>Job opportunity</option><option>Freelance project</option><option>Collaboration</option><option>Just saying hello</option></select><label for="kind">I’m reaching out about</label></div>
 <div class="f"><textarea id="note" rows="3" placeholder=" "></textarea><label for="note">Message (optional)</label></div>
+<input id="hp" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:0;width:0">
 <button class="btn solid" id="send" type="submit">Send message</button><div id="msg" role="status"></div>
 </form></div></div></section></main>
 <footer><img class="logo-img flogo" alt="FS Creative Corner logo"><div class="brandmark gold">FS Creative Corner</div><div class="socials"><a href="https://github.com/furqan-sial" target="_blank" rel="noopener">GitHub</a><a href="https://www.linkedin.com/in/furqan-sial-986b673b9/" target="_blank" rel="noopener">LinkedIn</a><a href="https://www.instagram.com/furqan_sial_/" target="_blank" rel="noopener">Instagram</a><a href="mailto:fscreativecorner@gmail.com">Email</a></div>© <span id="yr"></span> Furqan Sial · Founder, FS Creative Corner</footer>
@@ -258,15 +259,35 @@ $$(".card").forEach(function(c){
 c.addEventListener("pointermove",function(e){var r=c.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;c.style.setProperty("--mx",x+"px");c.style.setProperty("--my",y+"px");c.style.transform="perspective(900px) rotateX("+((y/r.height-.5)*-6)+"deg) rotateY("+((x/r.width-.5)*6)+"deg) translateY(-4px)"});
 c.addEventListener("pointerleave",function(){c.style.transform=""});
 });
-/* contact: opens the visitor's email app with the message filled in */
-var msg=$("#msg");
-$("#form").addEventListener("submit",function(ev){
+/* ===== CONTACT FORM SETUP: paste ONE of these after creating your free form ===== */
+var FORMSPREE_URL="";  /* example: "https://formspree.io/f/abcdwxyz" */
+var WEB3FORMS_KEY="";  /* example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" */
+/* If both are empty, the form falls back to opening the visitor's email app. */
+var MY_EMAIL="fscreativecorner@gmail.com";
+var msg=$("#msg"),sendBtn=$("#send");
+$("#form").addEventListener("submit",async function(ev){
 ev.preventDefault();msg.className="";
 var name=$("#name").value.trim(),email=$("#email").value.trim(),kind=$("#kind").value,note=$("#note").value.trim();
 if(!name||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.className="err";msg.textContent="Please enter your name and a valid email.";return}
-var body="Name: "+name+"\nEmail: "+email+"\nAbout: "+kind+"\n\n"+note;
-window.location.href="mailto:fscreativecorner@gmail.com?subject="+encodeURIComponent("Portfolio enquiry: "+kind)+"&body="+encodeURIComponent(body);
-msg.textContent="Opening your email app…";
+if($("#hp").value){msg.textContent="Thank you. Your message has been sent.";return}
+var text="About: "+kind+(note?"\n\n"+note:"");
+function ok(){msg.textContent="Thank you, "+name.split(" ")[0]+". Your message has been sent and I’ll reply soon.";$("#form").reset()}
+function fail(){msg.className="err";msg.innerHTML="Couldn’t send right now. Please email me directly at <a href=\"mailto:"+MY_EMAIL+"\" style=\"text-decoration:underline\">"+MY_EMAIL+"</a>."}
+if(!FORMSPREE_URL&&!WEB3FORMS_KEY){
+window.location.href="mailto:"+MY_EMAIL+"?subject="+encodeURIComponent("Portfolio enquiry: "+kind)+"&body="+encodeURIComponent("Name: "+name+"\nEmail: "+email+"\n\n"+text);
+msg.textContent="Opening your email app…";return}
+sendBtn.disabled=true;msg.textContent="Sending…";
+try{
+var r,d;
+if(FORMSPREE_URL){
+r=await fetch(FORMSPREE_URL,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({name:name,email:email,topic:kind,message:text})});
+if(r.ok)ok();else fail();
+}else{
+r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({access_key:WEB3FORMS_KEY,subject:"Portfolio enquiry: "+kind,from_name:name,name:name,email:email,message:text,botcheck:""})});
+d=await r.json();if(d&&d.success)ok();else fail();
+}
+}catch(e){fail()}
+sendBtn.disabled=false;
 });
 })();
 </script>
